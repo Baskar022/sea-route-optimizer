@@ -1,0 +1,122 @@
+[
+  {
+    "id": "W1",
+    "name": "Arabian Sea Monsoon Zone",
+    "centerLng": 65.0,
+    "centerLat": 15.0,
+    "radiusNm": 500,
+    "riskLevel": "High",
+    "severity": 0.9,
+    "seasonality": "Jun-Sep"
+  },
+  {
+    "id": "W2",
+    "name": "Bay of Bengal Cyclone Zone",
+    "centerLng": 88.0,
+    "centerLat": 16.0,
+    "radiusNm": 400,
+    "riskLevel": "High",
+    "severity": 0.95,
+    "seasonality": "Apr-Nov"
+  },
+  {
+    "id": "W3",
+    "name": "South China Sea Storm Belt",
+    "centerLng": 115.0,
+    "centerLat": 12.0,
+    "radiusNm": 500,
+    "riskLevel": "High",
+    "severity": 0.85,
+    "seasonality": "May-Oct"
+  },
+  {
+    "id": "W4",
+    "name": "North Atlantic Storm Zone",
+    "centerLng": -40.0,
+    "centerLat": 45.0,
+    "radiusNm": 700,
+    "riskLevel": "High",
+    "severity": 0.8,
+    "seasonality": "Oct-Mar"
+  },
+  {
+    "id": "W5",
+    "name": "Southern Ocean Rough Seas",
+    "centerLng": 20.0,
+    "centerLat": -50.0,
+    "radiusNm": 800,
+    "riskLevel": "High",
+    "severity": 0.9,
+    "seasonality": "All Year"
+  },
+  {
+    "id": "W6",
+    "name": "Mediterranean Seasonal Storms",
+    "centerLng": 18.0,
+    "centerLat": 35.0,
+    "radiusNm": 300,
+    "riskLevel": "Medium",
+    "severity": 0.6,
+    "seasonality": "Nov-Feb"
+  },
+  {
+    "id": "W7",
+    "name": "Gulf of Mexico Storm Zone",
+    "centerLng": -90.0,
+    "centerLat": 25.0,
+    "radiusNm": 400,
+    "riskLevel": "High",
+    "severity": 0.85,
+    "seasonality": "Jun-Nov"
+  },
+  {
+    "id": "W8",
+    "name": "West African Coastal Storms",
+    "centerLng": -10.0,
+    "centerLat": 5.0,
+    "radiusNm": 350,
+    "riskLevel": "Medium",
+    "severity": 0.65,
+    "seasonality": "Jun-Oct"
+  },
+  {
+    "id": "W9",
+    "name": "Australian Cyclone Zone",
+    "centerLng": 120.0,
+    "centerLat": -15.0,
+    "radiusNm": 400,
+    "riskLevel": "High",
+    "severity": 0.9,
+    "seasonality": "Nov-Apr"
+  },
+  {
+    "id": "W10",
+    "name": "North Pacific Storm Corridor",
+    "centerLng": -160.0,
+    "centerLat": 40.0,
+    "radiusNm": 700,
+    "riskLevel": "Medium",
+    "severity": 0.7,
+    "seasonality": "Oct-Mar"
+  },
+  {
+    "id": "W11",
+    "name": "Equatorial Calm Zone",
+    "centerLng": 0.0,
+    "centerLat": 0.0,
+    "radiusNm": 600,
+    "riskLevel": "Low",
+    "severity": 0.2,
+    "seasonality": "All Year"
+  },
+  {
+    "id": "W12",
+    "name": "Indian Ocean Cyclone Belt",
+    "centerLng": 90.0,
+    "centerLat": -10.0,
+    "radiusNm": 500,
+    "riskLevel": "High",
+    "severity": 0.85,
+    "seasonality": "Nov-Apr"
+  }
+]

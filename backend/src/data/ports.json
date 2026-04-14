@@ -1,0 +1,52 @@
+[
+  { "country": "India", "portName": "Mumbai Port", "lat": 18.95, "lng": 72.84, "draftLimitM": 14, "fuelPriceMultiplier": 1.1, "congestionLevel": "Medium" },
+  { "country": "India", "portName": "Chennai Port", "lat": 13.08, "lng": 80.29, "draftLimitM": 16, "fuelPriceMultiplier": 1.05, "congestionLevel": "High" },
+  { "country": "India", "portName": "Kandla Port", "lat": 23.03, "lng": 70.22, "draftLimitM": 13, "fuelPriceMultiplier": 1.0, "congestionLevel": "Low" },
+  { "country": "India", "portName": "Visakhapatnam Port", "lat": 17.69, "lng": 83.29, "draftLimitM": 18, "fuelPriceMultiplier": 1.08, "congestionLevel": "Medium" },
+  { "country": "India", "portName": "Kochi Port", "lat": 9.97, "lng": 76.27, "draftLimitM": 14, "fuelPriceMultiplier": 1.06, "congestionLevel": "Low" },
+
+  { "country": "Singapore", "portName": "Port of Singapore", "lat": 1.29, "lng": 103.85, "draftLimitM": 20, "fuelPriceMultiplier": 1.2, "congestionLevel": "High" },
+
+  { "country": "UAE", "portName": "Jebel Ali Port", "lat": 25.01, "lng": 55.06, "draftLimitM": 18, "fuelPriceMultiplier": 1.15, "congestionLevel": "Medium" },
+  { "country": "UAE", "portName": "Port of Fujairah", "lat": 25.13, "lng": 56.33, "draftLimitM": 17, "fuelPriceMultiplier": 1.1, "congestionLevel": "Low" },
+  { "country": "Saudi Arabia", "portName": "Jeddah Islamic Port", "lat": 21.48, "lng": 39.17, "draftLimitM": 16, "fuelPriceMultiplier": 1.12, "congestionLevel": "Medium" },
+
+  { "country": "China", "portName": "Port of Shanghai", "lat": 31.23, "lng": 121.49, "draftLimitM": 22, "fuelPriceMultiplier": 1.25, "congestionLevel": "High" },
+  { "country": "China", "portName": "Port of Shenzhen", "lat": 22.55, "lng": 114.1, "draftLimitM": 20, "fuelPriceMultiplier": 1.2, "congestionLevel": "High" },
+  { "country": "China", "portName": "Port of Ningbo-Zhoushan", "lat": 29.87, "lng": 121.55, "draftLimitM": 21, "fuelPriceMultiplier": 1.22, "congestionLevel": "Medium" },
+  { "country": "China", "portName": "Port of Guangzhou", "lat": 23.13, "lng": 113.26, "draftLimitM": 19, "fuelPriceMultiplier": 1.18, "congestionLevel": "High" },
+
+  { "country": "Japan", "portName": "Port of Tokyo", "lat": 35.65, "lng": 139.77, "draftLimitM": 16, "fuelPriceMultiplier": 1.3, "congestionLevel": "Medium" },
+  { "country": "Japan", "portName": "Port of Yokohama", "lat": 35.45, "lng": 139.65, "draftLimitM": 17, "fuelPriceMultiplier": 1.28, "congestionLevel": "Medium" },
+
+  { "country": "South Korea", "portName": "Port of Busan", "lat": 35.1, "lng": 129.04, "draftLimitM": 18, "fuelPriceMultiplier": 1.22, "congestionLevel": "High" },
+
+  { "country": "USA", "portName": "Port of Los Angeles", "lat": 33.74, "lng": -118.27, "draftLimitM": 20, "fuelPriceMultiplier": 1.3, "congestionLevel": "High" },
+  { "country": "USA", "portName": "Port of Long Beach", "lat": 33.75, "lng": -118.2, "draftLimitM": 20, "fuelPriceMultiplier": 1.28, "congestionLevel": "High" },
+  { "country": "USA", "portName": "Port of New York", "lat": 40.68, "lng": -74.04, "draftLimitM": 18, "fuelPriceMultiplier": 1.28, "congestionLevel": "High" },
+  { "country": "USA", "portName": "Port of Houston", "lat": 29.73, "lng": -95.27, "draftLimitM": 15, "fuelPriceMultiplier": 1.2, "congestionLevel": "Medium" },
+
+  { "country": "Canada", "portName": "Port of Vancouver", "lat": 49.28, "lng": -123.12, "draftLimitM": 18, "fuelPriceMultiplier": 1.25, "congestionLevel": "Medium" },
+
+  { "country": "Netherlands", "portName": "Port of Rotterdam", "lat": 51.95, "lng": 4.14, "draftLimitM": 23, "fuelPriceMultiplier": 1.3, "congestionLevel": "Medium" },
+  { "country": "Belgium", "portName": "Port of Antwerp", "lat": 51.26, "lng": 4.4, "draftLimitM": 17, "fuelPriceMultiplier": 1.28, "congestionLevel": "Medium" },
+  { "country": "Germany", "portName": "Port of Hamburg", "lat": 53.54, "lng": 9.99, "draftLimitM": 16, "fuelPriceMultiplier": 1.25, "congestionLevel": "Medium" },
+
+  { "country": "UK", "portName": "Port of London", "lat": 51.5, "lng": 0.05, "draftLimitM": 14, "fuelPriceMultiplier": 1.3, "congestionLevel": "Medium" },
+
+  { "country": "Spain", "portName": "Port of Valencia", "lat": 39.45, "lng": -0.32, "draftLimitM": 16, "fuelPriceMultiplier": 1.2, "congestionLevel": "Medium" },
+
+  { "country": "Italy", "portName": "Port of Genoa", "lat": 44.4, "lng": 8.93, "draftLimitM": 15, "fuelPriceMultiplier": 1.22, "congestionLevel": "Medium" },
+
+  { "country": "Egypt", "portName": "Port of Alexandria", "lat": 31.2, "lng": 29.91, "draftLimitM": 14, "fuelPriceMultiplier": 1.1, "congestionLevel": "Low" },
+  { "country": "Egypt", "portName": "Port Said", "lat": 31.26, "lng": 32.29, "draftLimitM": 14, "fuelPriceMultiplier": 1.12, "congestionLevel": "Medium" },
+
+  { "country": "Panama", "portName": "Balboa Port", "lat": 8.95, "lng": -79.55, "draftLimitM": 15, "fuelPriceMultiplier": 1.18, "congestionLevel": "Medium" },
+
+  { "country": "Brazil", "portName": "Port of Santos", "lat": -23.96, "lng": -46.33, "draftLimitM": 16, "fuelPriceMultiplier": 1.15, "congestionLevel": "Medium" },
+
+  { "country": "South Africa", "portName": "Port of Durban", "lat": -29.87, "lng": 31.02, "draftLimitM": 17, "fuelPriceMultiplier": 1.12, "congestionLevel": "Medium" },
+
+  { "country": "Australia", "portName": "Port of Sydney", "lat": -33.86, "lng": 151.2, "draftLimitM": 15, "fuelPriceMultiplier": 1.3, "congestionLevel": "Medium" },
+  { "country": "Australia", "portName": "Port of Melbourne", "lat": -37.81, "lng": 144.96, "draftLimitM": 15, "fuelPriceMultiplier": 1.28, "congestionLevel": "Medium" }
+]

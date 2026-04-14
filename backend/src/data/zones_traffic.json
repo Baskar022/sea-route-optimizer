@@ -1,0 +1,128 @@
+[
+  {
+    "id": "T1",
+    "name": "Strait of Malacca Traffic",
+    "centerLng": 101.0,
+    "centerLat": 2.5,
+    "radiusNm": 300,
+    "riskLevel": "High",
+    "intensity": 0.95
+  },
+  {
+    "id": "T2",
+    "name": "South China Sea Corridor",
+    "centerLng": 115.0,
+    "centerLat": 10.0,
+    "radiusNm": 600,
+    "riskLevel": "High",
+    "intensity": 0.9
+  },
+  {
+    "id": "T3",
+    "name": "Arabian Sea Trade Route",
+    "centerLng": 65.0,
+    "centerLat": 15.0,
+    "radiusNm": 500,
+    "riskLevel": "Medium",
+    "intensity": 0.7
+  },
+  {
+    "id": "T4",
+    "name": "Indian Ocean East-West Lane",
+    "centerLng": 80.0,
+    "centerLat": 5.0,
+    "radiusNm": 700,
+    "riskLevel": "Medium",
+    "intensity": 0.6
+  },
+  {
+    "id": "T5",
+    "name": "Suez Canal Approach",
+    "centerLng": 32.5,
+    "centerLat": 30.5,
+    "radiusNm": 200,
+    "riskLevel": "High",
+    "intensity": 0.9
+  },
+  {
+    "id": "T6",
+    "name": "Mediterranean Shipping Lane",
+    "centerLng": 18.0,
+    "centerLat": 36.0,
+    "radiusNm": 600,
+    "riskLevel": "Medium",
+    "intensity": 0.65
+  },
+  {
+    "id": "T7",
+    "name": "North Sea Corridor",
+    "centerLng": 3.0,
+    "centerLat": 55.0,
+    "radiusNm": 400,
+    "riskLevel": "High",
+    "intensity": 0.85
+  },
+  {
+    "id": "T8",
+    "name": "English Channel Traffic",
+    "centerLng": -1.5,
+    "centerLat": 50.5,
+    "radiusNm": 200,
+    "riskLevel": "High",
+    "intensity": 0.95
+  },
+  {
+    "id": "T9",
+    "name": "US West Coast Shipping",
+    "centerLng": -122.0,
+    "centerLat": 36.0,
+    "radiusNm": 400,
+    "riskLevel": "Medium",
+    "intensity": 0.7
+  },
+  {
+    "id": "T10",
+    "name": "Panama Canal Approach",
+    "centerLng": -79.5,
+    "centerLat": 9.0,
+    "radiusNm": 200,
+    "riskLevel": "High",
+    "intensity": 0.9
+  },
+  {
+    "id": "T11",
+    "name": "South Atlantic Route",
+    "centerLng": -20.0,
+    "centerLat": -15.0,
+    "radiusNm": 700,
+    "riskLevel": "Low",
+    "intensity": 0.4
+  },
+  {
+    "id": "T12",
+    "name": "Cape of Good Hope Route",
+    "centerLng": 20.0,
+    "centerLat": -35.0,
+    "radiusNm": 500,
+    "riskLevel": "Medium",
+    "intensity": 0.6
+  },
+  {
+    "id": "T13",
+    "name": "Japan–Korea Corridor",
+    "centerLng": 130.0,
+    "centerLat": 34.0,
+    "radiusNm": 300,
+    "riskLevel": "High",
+    "intensity": 0.85
+  },
+  {
+    "id": "T14",
+    "name": "Australia East Coast Shipping",
+    "centerLng": 153.0,
+    "centerLat": -28.0,
+    "radiusNm": 400,
+    "riskLevel": "Medium",
+    "intensity": 0.6
+  }
+]

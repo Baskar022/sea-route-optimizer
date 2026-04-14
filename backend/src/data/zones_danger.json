@@ -1,0 +1,102 @@
+[
+  {
+    "id": "D1",
+    "name": "Suez Canal Narrow Passage",
+    "centerLng": 32.3,
+    "centerLat": 30.5,
+    "radiusNm": 120,
+    "riskLevel": "Medium",
+    "reason": "Narrow high-traffic canal",
+    "penalty": 7000
+  },
+  {
+    "id": "D2",
+    "name": "Panama Canal Restriction",
+    "centerLng": -79.6,
+    "centerLat": 9.0,
+    "radiusNm": 120,
+    "riskLevel": "Medium",
+    "reason": "Congestion and size limits",
+    "penalty": 7000
+  },
+  {
+    "id": "D3",
+    "name": "Strait of Hormuz Tension Zone",
+    "centerLng": 56.3,
+    "centerLat": 26.5,
+    "radiusNm": 150,
+    "riskLevel": "High",
+    "reason": "Geopolitical tension",
+    "penalty": 9000
+  },
+  {
+    "id": "D4",
+    "name": "Bab el-Mandeb Strait",
+    "centerLng": 43.3,
+    "centerLat": 12.7,
+    "radiusNm": 120,
+    "riskLevel": "High",
+    "reason": "Narrow chokepoint",
+    "penalty": 8500
+  },
+  {
+    "id": "D5",
+    "name": "English Channel Heavy Traffic",
+    "centerLng": -1.0,
+    "centerLat": 50.5,
+    "radiusNm": 150,
+    "riskLevel": "High",
+    "reason": "Heavy traffic and narrow waters",
+    "penalty": 8000
+  },
+  {
+    "id": "D6",
+    "name": "Bosporus Strait",
+    "centerLng": 29.0,
+    "centerLat": 41.0,
+    "radiusNm": 100,
+    "riskLevel": "High",
+    "reason": "Sharp turns and congestion",
+    "penalty": 8500
+  },
+  {
+    "id": "D7",
+    "name": "Malacca Strait Narrow Section",
+    "centerLng": 101.5,
+    "centerLat": 2.5,
+    "radiusNm": 120,
+    "riskLevel": "High",
+    "reason": "Shallow and congested waters",
+    "penalty": 9000
+  },
+  {
+    "id": "D8",
+    "name": "Great Barrier Reef Hazard",
+    "centerLng": 147.0,
+    "centerLat": -18.0,
+    "radiusNm": 400,
+    "riskLevel": "High",
+    "reason": "Reef and navigation hazards",
+    "penalty": 9500
+  },
+  {
+    "id": "D9",
+    "name": "Arctic Ice Navigation Zone",
+    "centerLng": -40.0,
+    "centerLat": 70.0,
+    "radiusNm": 600,
+    "riskLevel": "High",
+    "reason": "Ice and extreme conditions",
+    "penalty": 10000
+  },
+  {
+    "id": "D10",
+    "name": "Cape Horn Extreme Waters",
+    "centerLng": -67.0,
+    "centerLat": -56.0,
+    "radiusNm": 300,
+    "riskLevel": "High",
+    "reason": "Extreme waves and winds",
+    "penalty": 9500
+  }
+]
