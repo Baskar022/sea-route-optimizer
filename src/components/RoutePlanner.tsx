@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,6 +49,44 @@ const RoutePlanner = ({ onRouteGenerated, onMetaGenerated }: RoutePlannerProps) 
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+
+  useEffect(() => {
+    const fetchOptimizerMetadata = async () => {
+      try {
+        const response = await fetch("/api/optimizer-metadata");
+        if (!response.ok) return;
+
+        const payload = await response.json();
+        const backendPortOptions = payload?.meta?.portsByCountry;
+        onMetaGenerated?.(payload?.meta);
+
+        if (backendPortOptions && Object.keys(backendPortOptions).length > 0) {
+          const normalizedPorts = Object.fromEntries(
+            Object.entries(backendPortOptions).map(([country, ports]) => [
+              country,
+              (ports as { name: string }[]).map((port) => port.name),
+            ])
+          );
+
+          if (Object.keys(normalizedPorts).length > 0) {
+            setAvailablePorts(normalizedPorts);
+            setFormData((prev) => {
+              const allPorts = new Set(Object.values(normalizedPorts).flat());
+              return {
+                ...prev,
+                startPort: allPorts.has(prev.startPort) ? prev.startPort : "",
+                destinationPort: allPorts.has(prev.destinationPort) ? prev.destinationPort : "",
+              };
+            });
+          }
+        }
+      } catch {
+        // Keep fallback mock list when backend metadata is unavailable.
+      }
+    };
+
+    fetchOptimizerMetadata();
+  }, [onMetaGenerated]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,6 +143,16 @@ const RoutePlanner = ({ onRouteGenerated, onMetaGenerated }: RoutePlannerProps) 
                 lng,
               })),
       }));
+
+      // Check for routes crossing land
+      const landCrossingRoutes = routes.filter(r => (r as any).landCrossing);
+      if (landCrossingRoutes.length > 0) {
+        toast({
+          title: "Land Crossing Alert",
+          description: `${landCrossingRoutes.length} route(s) cross land areas. Review carefully or use alternative routes.`,
+          variant: "destructive",
+        });
+      }
 
       onRouteGenerated(routes);
       onMetaGenerated?.(payload?.meta);

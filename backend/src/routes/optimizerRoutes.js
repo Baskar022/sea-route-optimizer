@@ -14,8 +14,26 @@ const requiredFields = [
   "optimizationGoal",
 ];
 
+const buildOptimizerMeta = () => ({
+  algorithm: "astar-haversine-weighted",
+  format: "coords => [[lng, lat], ...]",
+  portsByCountry: PORTS_BY_COUNTRY,
+  constraints: {
+    trafficZones: TRAFFIC_ZONES,
+    weatherZones: WEATHER_SYSTEMS,
+    piracyZones: PIRACY_ZONES,
+    dangerZones: DANGER_ZONES,
+  },
+});
+
 router.get("/health", (_req, res) => {
   res.json({ ok: true, service: "ship-route-optimizer-backend" });
+});
+
+router.get("/optimizer-metadata", (_req, res) => {
+  return res.json({
+    meta: buildOptimizerMeta(),
+  });
 });
 
 router.post("/optimize-route", async (req, res) => {
@@ -40,17 +58,7 @@ router.post("/optimize-route", async (req, res) => {
     return res.json({
       routes,
       persistence,
-      meta: {
-        algorithm: "astar-haversine-weighted",
-        format: "coords => [[lng, lat], ...]",
-        portsByCountry: PORTS_BY_COUNTRY,
-        constraints: {
-          trafficZones: TRAFFIC_ZONES,
-          weatherZones: WEATHER_SYSTEMS,
-          piracyZones: PIRACY_ZONES,
-          dangerZones: DANGER_ZONES,
-        },
-      },
+      meta: buildOptimizerMeta(),
     });
   } catch (error) {
     return res.status(500).json({

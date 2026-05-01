@@ -53,6 +53,16 @@ const ClientDashboard = () => {
       .order('created_at', { ascending: false })
       .limit(10);
 
+    if (error) {
+      console.error('Error fetching route history:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load route history. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (data) {
       setRouteHistory(data);
     }
@@ -61,10 +71,15 @@ const ClientDashboard = () => {
   const fetchStats = async () => {
     if (!user) return;
 
-    const { data: routes } = await supabase
+    const { data: routes, error } = await supabase
       .from('routes')
       .select('*')
       .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Error fetching route stats:', error);
+      return;
+    }
 
     if (routes) {
       const asNumber = (value: unknown) => (typeof value === 'number' ? value : Number(value || 0));

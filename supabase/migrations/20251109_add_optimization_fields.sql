@@ -1,0 +1,9 @@
+-- Add route optimization fields to routes table
+ALTER TABLE public.routes 
+ADD COLUMN IF NOT EXISTS route_cost_inr NUMERIC,
+ADD COLUMN IF NOT EXISTS travel_hours NUMERIC,
+ADD COLUMN IF NOT EXISTS departure_time TIMESTAMP WITH TIME ZONE,
+ADD COLUMN IF NOT EXISTS land_crossing BOOLEAN DEFAULT FALSE,
+ADD COLUMN IF NOT EXISTS waypoints JSONB,
+ADD COLUMN IF NOT EXISTS optimization_goal TEXT,
+ADD COLUMN IF NOT EXISTS ship_type TEXT;

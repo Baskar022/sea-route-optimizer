@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { 
   Table, 
   TableBody, 
@@ -118,7 +119,16 @@ const RouteResults = ({ routes, onRouteSelect }: RouteResultsProps) => {
               <TableBody>
                 {routes.map((route) => (
                   <TableRow key={route.id} className="hover:bg-muted/30 transition-colors">
-                    <TableCell className="font-medium">{route.name}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center space-x-2">
+                        <span>{route.name}</span>
+                        {(route as any).landCrossing && (
+                          <Badge variant="destructive" className="text-xs">
+                            ⚠ Land Crossing
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>{route.distance.toLocaleString()} nm</TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-1">

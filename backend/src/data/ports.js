@@ -20,16 +20,46 @@ export const PORTS_BY_COUNTRY = portsDataset.reduce((acc, port) => {
 }, {});
 
 const PORT_ALIASES = {
+  // Indian ports
   "Mumbai, India": "Mumbai Port",
+  "Mormugao, India": "Mumbai Port",
   "Chennai, India": "Chennai Port",
   "Kochi, India": "Kochi Port",
   "Visakhapatnam, India": "Visakhapatnam Port",
   "Kolkata, India": "Kandla Port",
+  
+  // Middle East ports
   "Dubai, UAE": "Jebel Ali Port",
+  "Abu Dhabi, UAE": "Jebel Ali Port",
+  "Muscat, Oman": "Port of Fujairah",
+  
+  // SE Asia ports
   "Singapore": "Port of Singapore",
+  "Singapore Port": "Port of Singapore",
+  "Port Singapore": "Port of Singapore",
+  
+  // China ports
   "Shanghai, China": "Port of Shanghai",
+  "Shanghai Port": "Port of Shanghai",
+  "Port Shanghai": "Port of Shanghai",
+  "Shenzhen, China": "Port of Shenzhen",
+  "Shenzhen Port": "Port of Shenzhen",
+  "Qingdao, China": "Port of Ningbo-Zhoushan",
+  "Qingdao Port": "Port of Ningbo-Zhoushan",
+  
+  // Europe ports
   "Rotterdam, Netherlands": "Port of Rotterdam",
+  "Rotterdam Port": "Port of Rotterdam",
   "Hamburg, Germany": "Port of Hamburg",
+  "Hamburg Port": "Port of Hamburg",
+  
+  // Africa ports
+  "Alexandria, Egypt": "Port of Alexandria",
+  "Alexandria Port": "Port of Alexandria",
+  "Mombasa, Kenya": "Port of Durban",
+  "Mombasa Port": "Port of Durban",
+  "Cape Town, South Africa": "Port of Durban",
+  "Cape Town Port": "Port of Durban",
 };
 
 export const PORT_COORDINATES = Object.values(PORTS_BY_COUNTRY)

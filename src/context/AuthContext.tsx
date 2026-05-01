@@ -45,11 +45,18 @@ const buildUserFromSession = (authUser: SupabaseUser, profile?: { full_name?: st
 };
 
 const hydrateUserProfile = async (authUser: SupabaseUser, setUser: (user: User) => void) => {
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', authUser.id)
     .single();
+
+  if (error) {
+    console.warn('Could not fetch profile (RLS may not be applied yet):', error.message);
+    // Use basic user info if profile fetch fails
+    setUser(buildUserFromSession(authUser, undefined));
+    return;
+  }
 
   setUser(buildUserFromSession(authUser, profile || undefined));
 };

@@ -40,7 +40,10 @@ export const smoothRouteCoordinates = (rawCoords, interpolationDensity = 3) => {
 
   // Two passes gives smoother sea-lane-like curves while preserving endpoints.
   const pass1 = chaikinPass(interpolated);
-  return chaikinPass(pass1);
+  const pass2 = chaikinPass(pass1);
+  
+  // Return smoothed path - validation against land is done by the caller
+  return pass2;
 };
 
 export const coordsToWaypoints = (coords) =>
