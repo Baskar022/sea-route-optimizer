@@ -10,6 +10,7 @@ import {
 } from "../data/maritimeRiskData.js";
 import { clamp, distanceToZoneFactor, formatEta, haversineNm, isLand } from "../utils/geo.js";
 import { coordsToWaypoints, smoothRouteCoordinates } from "./routeSmoothingService.js";
+import { generateGeographicRoute } from "./gridPathfindingService.js";
 
 const ROUTE_TYPES = [
   "Fastest Route",
@@ -117,11 +118,10 @@ const segmentBlocked = (fromPoint, toPoint, routeStart, routeEnd, _safetyBias) =
     ];
   });
 
-  // For island destinations, be very lenient
-  const isIslandRoute = /Singapore|Hong Kong|Jakarta/.test(routeEnd.name) || 
-                        /Singapore|Hong Kong|Jakarta/.test(routeStart.name);
-  const landThreshold = isIslandRoute ? 80 : 75;
-  const consecutiveThreshold = isIslandRoute ? 65 : 60;
+  // Reasonable land validation: Allow narrow straits/channels (up to 10% land tolerance)
+  // but reject if more than 10 consecutive land samples (major land mass crossing)
+  const landThreshold = 10;  // Max 10% land samples allowed
+  const consecutiveThreshold = 3;  // Max 3 consecutive land samples allowed
   
   let landCount = 0;
   let maxConsecutive = 0;
@@ -129,8 +129,7 @@ const segmentBlocked = (fromPoint, toPoint, routeStart, routeEnd, _safetyBias) =
   
   for (const sample of samples) {
     // Very generous port buffer for island routes
-    const portBuffer = isIslandRoute ? PORT_BUFFER_NM * 2 : PORT_BUFFER_NM * 1.5;
-    if (pointNearAnyPort(sample, [routeStart.name, routeEnd.name], portBuffer)) {
+    if (pointNearAnyPort(sample, [routeStart.name, routeEnd.name], PORT_BUFFER_NM * 2)) {
       currentConsecutive = 0;
       continue;  // Allow ports as exceptions
     }
@@ -143,12 +142,12 @@ const segmentBlocked = (fromPoint, toPoint, routeStart, routeEnd, _safetyBias) =
     }
   }
   
-  // Island routes get more tolerance
+  // Reject only if: more than 10% land samples OR more than 3 consecutive land samples
   if (landCount > landThreshold || maxConsecutive > consecutiveThreshold) {
-    return true;  // Blocked
+    return true;  // Blocked - significant land crossing detected
   }
   
-  return false;  // Not blocked
+  return false;  // Not blocked - minor land contact (straits/channels allowed)
 };
 
 const buildGrid = (start, end, gridSize = 42) => {
@@ -262,12 +261,56 @@ const scoreEdge = (metrics, weights) => {
 };
 
 /**
- * DISABLED: Full path validation against land
- * The GeoJSON land data is overly conservative, especially in SE Asia
- * Individual segment validation in segmentBlocked() is sufficient
+ * STRICT: Check if path crosses land at ALL
+ * Returns true if ANY sample point is on land (ZERO tolerance)
  */
 const pathCrossesLand = (coords, routeStart, routeEnd, safetyBias = 1) => {
-  return false;  // DISABLED - rely on segment-level validation instead
+  if (!coords || coords.length < 2) return false;
+
+  // Check every segment of the path
+  for (let i = 0; i < coords.length - 1; i++) {
+    const fromPoint = coords[i];
+    const toPoint = coords[i + 1];
+
+    // Sample 100 points along this segment
+    const samples = Array.from({ length: 100 }, (_, idx) => {
+      const t = (idx + 1) / 101;
+      return [
+        fromPoint[0] + (toPoint[0] - fromPoint[0]) * t,
+        fromPoint[1] + (toPoint[1] - fromPoint[1]) * t,
+      ];
+    });
+
+    // Reasonable land tolerance: Allow up to 10% land samples (straits/channels)
+    // Reject only if more than 10 consecutive or 10+ total land samples
+    let landCount = 0;
+    let maxConsecutive = 0;
+    let currentConsecutive = 0;
+
+    for (const sample of samples) {
+      // Always allow ports as exceptions
+      if (pointNearAnyPort(sample, [routeStart.name, routeEnd.name], PORT_BUFFER_NM * 5)) {
+        currentConsecutive = 0;
+        continue;
+      }
+      
+      if (pointInSolidArea(sample)) {
+        landCount++;
+        currentConsecutive++;
+        maxConsecutive = Math.max(maxConsecutive, currentConsecutive);
+      } else {
+        currentConsecutive = 0;
+      }
+    }
+
+    // Reject only if: more than 10% land samples OR more than 10 consecutive land samples
+    if (landCount > 10 || maxConsecutive > 10) {
+      console.debug(`[Land Crossing] Segment ${i} has too much land: ${landCount} samples, ${maxConsecutive} consecutive`);
+      return true;  // Path crosses significant land
+    }
+  }
+
+  return false;  // Path is mostly water (may have minor straits/channels)
 };
 
 /**
@@ -649,6 +692,27 @@ const summarizePath = ({ coords, start, end, shipProfile, speedKnots, weights })
   };
 };
 
+/**
+ * Strict land validation for saving routes
+ * Returns true if route crosses significant land, false if water-only
+ * Used by save-route endpoint to ensure routes are maritime-only
+ */
+export const validateRouteLandCrossing = (route) => {
+  if (!route || !route.coords || route.coords.length < 2) {
+    return false; // No coords to check
+  }
+
+  // Get port information for exceptions
+  const startName = route.startPort || "";
+  const endName = route.destinationPort || "";
+
+  return pathCrossesLand(route.coords, 
+    { name: startName }, 
+    { name: endName }, 
+    1.0  // Standard safety bias for save validation
+  );
+};
+
 export const optimizeRouteSet = (request) => {
   const startCoordRaw = PORT_COORDINATES[request.startPort];
   const endCoordRaw = PORT_COORDINATES[request.destinationPort];
@@ -690,59 +754,78 @@ export const optimizeRouteSet = (request) => {
       fuelTonPerNm: shipProfile.fuelTonPerNm * profile.fuelBurnFactor,
     };
 
-    const attemptPlans = [
-      { offsetScale: 1, sideOverride: 0 },
-      { offsetScale: 1.3, sideOverride: 0 },
-      { offsetScale: 1.6, sideOverride: -1 },
-      { offsetScale: 1.85, sideOverride: 1 },
-    ];
-
     let smoothed = null;
     let landCrossing = false;
-    for (const attempt of attemptPlans) {
-      const rawPath = planRouteThroughLegs({
-        start,
-        end,
-        strategyName,
-        request,
-        weights,
-        shipProfile: strategyShipProfile,
-        speedKnots: effectiveSpeedKnots,
-        offsetScale: attempt.offsetScale,
-        sideOverride: attempt.sideOverride,
-      });
 
-      let candidate = smoothRouteCoordinates(rawPath, 3 + index);
-      
-      // HARD CONSTRAINT: Validate entire smoothed path against land
-      const validatedPath = validateAndFixSmoothedPath(
-        candidate, 
-        { name: request.startPort }, 
-        { name: request.destinationPort }, 
-        profile.safetyBias
-      );
-      
-      // Check if validation fixed the path
-      if (validatedPath !== null) {
-        // Path is water-only
-        console.log(`✓ [${strategyName}] Route ${request.startPort} → ${request.destinationPort} is water-only (offset: ${attempt.offsetScale})`);
-        smoothed = validatedPath;
+    // PRIORITY 1: Generate route using offset-based pathfinding with multiple legs for long routes
+    const directDistance = haversineNm(start, end);
+    const isLongRoute = directDistance > 3000;
+
+    // For long routes, try geographic routing first as a foundation
+    let geoPath = null;
+    if (isLongRoute) {
+      console.debug(`[${strategyName}] Long route detected (${directDistance.toFixed(0)} NM), attempting geographic-aware routing...`);
+      geoPath = generateGeographicRoute(start[0], start[1], end[0], end[1]);
+      if (geoPath && geoPath.length > 2) {
+        console.log(`✓ [${strategyName}] Geographic pathfinding provided ${geoPath.length} waypoints`);
+        smoothed = geoPath;
         landCrossing = false;
-        break;  // Accept first water-only route
-      } else {
-        // Path crosses land, try next attempt
-        console.debug(`✗ [${strategyName}] Route ${request.startPort} → ${request.destinationPort} crosses land (offset: ${attempt.offsetScale})`);
       }
-      // NO FALLBACK: If this attempt crosses land, skip it and try next
     }
 
-    // NO FALLBACK TO LAND-CROSSING ROUTES
-    // If all attempts cross land, return error path indicator
+    // If geographic routing didn't provide a path, try offset-based approach
     if (!smoothed) {
-      // This should trigger error handling in the calling code
-      console.warn(`[Route Optimization] WARNING: All route attempts cross land for ${request.startPort} to ${request.destinationPort}. Returning raw straight path.`);
-      smoothed = [start, end];
-      landCrossing = true;  // Flag this route as invalid
+      console.debug(`[${strategyName}] Using offset-based approach...`);
+      
+      const attemptPlans = [
+        { offsetScale: 1, sideOverride: 0 },
+        { offsetScale: 1.3, sideOverride: 0 },
+        { offsetScale: 1.6, sideOverride: -1 },
+        { offsetScale: 1.85, sideOverride: 1 },
+      ];
+
+      for (const attempt of attemptPlans) {
+        const rawPath = planRouteThroughLegs({
+          start,
+          end,
+          strategyName,
+          request,
+          weights,
+          shipProfile: strategyShipProfile,
+          speedKnots: effectiveSpeedKnots,
+          offsetScale: attempt.offsetScale,
+          sideOverride: attempt.sideOverride,
+        });
+
+        let candidate = smoothRouteCoordinates(rawPath, 3 + index);
+        
+        // HARD CONSTRAINT: Validate entire smoothed path against land
+        const validatedPath = validateAndFixSmoothedPath(
+          candidate, 
+          { name: request.startPort }, 
+          { name: request.destinationPort }, 
+          profile.safetyBias
+        );
+        
+        // Check if validation fixed the path
+        if (validatedPath !== null) {
+          // Path is water-only
+          console.log(`✓ [${strategyName}] Offset-based route is water-only (offset: ${attempt.offsetScale})`);
+          smoothed = validatedPath;
+          landCrossing = false;
+          break;  // Accept first water-only route
+        } else {
+          // Path crosses land, try next attempt
+          console.debug(`✗ [${strategyName}] Offset-based route crosses land (offset: ${attempt.offsetScale})`);
+        }
+      }
+
+      // If offset-based also fails, flag as land crossing
+      if (!smoothed) {
+        console.warn(`[Route Optimization] WARNING: All route attempts cross land for ${request.startPort} to ${request.destinationPort}. Returning raw straight path.`);
+        smoothed = [start, end];
+        landCrossing = true;  // Flag this route as invalid
+      }
     }
 
     const summary = summarizePath({

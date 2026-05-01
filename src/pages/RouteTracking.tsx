@@ -14,6 +14,7 @@ interface ActiveRoute {
   origin: string;
   destination: string;
   distance: number;
+  travel_hours?: number;
   estimated_time: string;
   current_latitude: number | null;
   current_longitude: number | null;
@@ -21,6 +22,9 @@ interface ActiveRoute {
   status: string;
   created_at: string;
   last_position_update: string | null;
+  route_coords?: Array<[number, number]>;
+  waypoints?: any[];
+  risk_level?: string;
 }
 
 const RouteTracking = () => {

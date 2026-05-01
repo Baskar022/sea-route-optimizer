@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { optimizeRouteSet } from "../services/routeOptimizerService.js";
+import { optimizeRouteSet, validateRouteLandCrossing } from "../services/routeOptimizerService.js";
 import { persistOptimizedRoutes } from "../services/supabaseRouteRepository.js";
 import { DANGER_ZONES, PIRACY_ZONES, TRAFFIC_ZONES, WEATHER_SYSTEMS } from "../data/maritimeRiskData.js";
 import { PORTS_BY_COUNTRY } from "../data/ports.js";
@@ -52,17 +52,68 @@ router.post("/optimize-route", async (req, res) => {
       });
     }
 
+    // Generate routes WITHOUT persisting them
     const routes = optimizeRouteSet(req.body);
-    const persistence = await persistOptimizedRoutes({ routes, request: req.body });
 
     return res.json({
       routes,
-      persistence,
       meta: buildOptimizerMeta(),
     });
   } catch (error) {
     return res.status(500).json({
       error: "Failed to optimize route",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
+router.post("/save-route", async (req, res) => {
+  try {
+    const { route, userId } = req.body;
+    
+    if (!route || !userId) {
+      return res.status(400).json({
+        success: false,
+        error: "Missing route or userId",
+      });
+    }
+
+    // STRICT land validation - reject any route with significant land crossings
+    const crossesLand = validateRouteLandCrossing(route);
+    if (crossesLand) {
+      return res.status(400).json({
+        success: false,
+        error: "Route crosses land. Maritime-only routes are required. Please select a different route or regenerate.",
+      });
+    }
+
+    // Additional check: if frontend marked it as crossing land, reject
+    if (route.landCrossing) {
+      return res.status(400).json({
+        success: false,
+        error: "Route crosses land and cannot be saved. Please select a different route.",
+      });
+    }
+
+    // Persist the selected route with status 'planned'
+    const persistence = await persistOptimizedRoutes({ 
+      routes: [route], 
+      userId: userId
+    });
+
+    if (!persistence.persisted || persistence.persisted === 0) {
+      throw new Error(persistence.reason || "Failed to save route");
+    }
+
+    return res.json({
+      success: true,
+      route: persistence.routes?.[0],
+      message: "Route saved successfully! Ready to start your voyage.",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: "Failed to save route",
       details: error instanceof Error ? error.message : "Unknown error",
     });
   }

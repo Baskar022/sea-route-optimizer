@@ -134,6 +134,12 @@ const RoutePlanner = ({ onRouteGenerated, onMetaGenerated }: RoutePlannerProps) 
       const payload = await response.json();
       const routes: RouteOption[] = (payload?.routes || []).map((route: RouteOption) => ({
         ...route,
+        // Add port information for persistence
+        startPort: formData.startPort,
+        destinationPort: formData.destinationPort,
+        ship_type: formData.shipType,
+        optimization_goal: formData.optimizationGoal,
+        departure_time: format(date, "yyyy-MM-dd'T'HH:mm:ss"),
         waypoints:
           route.waypoints && route.waypoints.length > 0
             ? route.waypoints

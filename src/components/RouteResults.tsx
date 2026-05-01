@@ -26,20 +26,26 @@ import {
   Shield, 
   TrendingUp,
   Eye,
-  CheckCircle,
+  Rocket,
   AlertTriangle,
-  Info
+  Info,
+  Loader2
 } from "lucide-react";
 import { RouteOption } from "@/data/mockRoutes";
+import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface RouteResultsProps {
   routes: RouteOption[];
-  onRouteSelect?: (route: RouteOption) => void;
+  onRouteSelect: (route: RouteOption) => void;
 }
 
 const RouteResults = ({ routes, onRouteSelect }: RouteResultsProps) => {
   const [selectedRoute, setSelectedRoute] = useState<RouteOption | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [savingRoute, setSavingRoute] = useState<string | null>(null);
+  const { user } = useAuth();
+  const { toast } = useToast();
 
   const getRiskIcon = (risk: string) => {
     switch (risk) {
@@ -72,8 +78,54 @@ const RouteResults = ({ routes, onRouteSelect }: RouteResultsProps) => {
     setShowDetails(true);
   };
 
-  const handleSelectRoute = (route: RouteOption) => {
-    onRouteSelect?.(route);
+  const handleSaveAndStart = async (route: RouteOption) => {
+    if (!user?.id) {
+      toast({
+        title: "Error",
+        description: "User not authenticated. Please log in to save routes.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSavingRoute(route.id);
+
+    try {
+      const response = await fetch("/api/save-route", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          route: {
+            ...route,
+            status: "planned",
+          },
+          userId: user.id,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to save route");
+      }
+
+      const { message } = await response.json();
+      toast({
+        title: "Success",
+        description: message || "Route saved and ready to start your voyage!",
+      });
+
+      onRouteSelect?.(route);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save route",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingRoute(null);
+    }
   };
 
   if (!routes.length) {
@@ -166,11 +218,16 @@ const RouteResults = ({ routes, onRouteSelect }: RouteResultsProps) => {
                         </Button>
                         <Button
                           size="sm"
-                          onClick={() => handleSelectRoute(route)}
+                          onClick={() => handleSaveAndStart(route)}
+                          disabled={savingRoute === route.id}
                           className="maritime-btn-secondary"
                         >
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Select
+                          {savingRoute === route.id ? (
+                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                          ) : (
+                            <Rocket className="w-3 h-3 mr-1" />
+                          )}
+                          {savingRoute === route.id ? "Saving..." : "Save & Start"}
                         </Button>
                       </div>
                     </TableCell>

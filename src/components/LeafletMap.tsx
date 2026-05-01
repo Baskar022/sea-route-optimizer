@@ -158,35 +158,57 @@ const LeafletMap = ({ routes = [], selectedRoute, activeRoute, constraints, onRo
     }
 
     if (selectedRoute && getRoutePoints(selectedRoute).length > 0) {
-      // Draw selected route
+      // Draw selected route - THICK and DARK for high visibility
       const points = getRoutePoints(selectedRoute);
       
-      polylineRef.current = L.polyline(points, {
-        color: 'hsl(var(--primary))',
-        weight: 4,
-        opacity: 0.85,
+      // Add dark background layer for better contrast
+      L.polyline(points, {
+        color: '#000000',
+        weight: 10,
+        opacity: 0.3,
         lineJoin: 'round',
         lineCap: 'round'
       }).addTo(mapRef.current);
 
-      addRouteMarkers(selectedRoute, 'hsl(var(--primary))');
+      // Main route line - thick and vibrant
+      polylineRef.current = L.polyline(points, {
+        color: '#0066cc',  // Deep blue - very visible
+        weight: 7,
+        opacity: 0.95,
+        lineJoin: 'round',
+        lineCap: 'round',
+        className: 'maritime-route-active'
+      }).addTo(mapRef.current);
+
+      addRouteMarkers(selectedRoute, '#0066cc');
 
       // Fit map to route bounds
       mapRef.current.fitBounds(polylineRef.current.getBounds(), { padding: [50, 50] });
     } else if (routes.length > 0 && getRoutePoints(routes[0]).length > 0) {
-      // Show first route if no selection
+      // Show first route if no selection - still thick for visibility
       const firstRoute = routes[0];
       const points = getRoutePoints(firstRoute);
       
-      polylineRef.current = L.polyline(points, {
-        color: 'hsl(var(--muted-foreground))',
-        weight: 3,
-        opacity: 0.6,
+      // Background layer
+      L.polyline(points, {
+        color: '#000000',
+        weight: 8,
+        opacity: 0.2,
         lineJoin: 'round',
         lineCap: 'round'
       }).addTo(mapRef.current);
 
-      addRouteMarkers(firstRoute, 'hsl(var(--muted-foreground))');
+      // Main route line
+      polylineRef.current = L.polyline(points, {
+        color: '#1e40af',  // Navy blue - prominent
+        weight: 5,
+        opacity: 0.8,
+        lineJoin: 'round',
+        lineCap: 'round',
+        className: 'maritime-route-default'
+      }).addTo(mapRef.current);
+
+      addRouteMarkers(firstRoute, '#1e40af');
 
       mapRef.current.fitBounds(polylineRef.current.getBounds(), { padding: [50, 50] });
     }
