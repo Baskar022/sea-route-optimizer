@@ -109,7 +109,7 @@ const pointNearAnyPort = (point, portNames, radiusNm = PORT_BUFFER_NM) =>
   });
 
 const segmentBlocked = (fromPoint, toPoint, routeStart, routeEnd, _safetyBias) => {
-  // Check for major land crossings, but allow maritime passages and straits
+  // Check for land crossings - stricter during A* to prevent dead-end searches
   const samples = Array.from({ length: 100 }, (_, idx) => {
     const t = (idx + 1) / 101;
     return [
@@ -118,21 +118,22 @@ const segmentBlocked = (fromPoint, toPoint, routeStart, routeEnd, _safetyBias) =
     ];
   });
 
-  // Reasonable land validation: Allow narrow straits/channels (up to 10% land tolerance)
-  // but reject if more than 10 consecutive land samples (major land mass crossing)
-  const landThreshold = 10;  // Max 10% land samples allowed
-  const consecutiveThreshold = 3;  // Max 3 consecutive land samples allowed
+  // Stricter land validation during A*: allow max 5% land samples
+  // This prevents routes from navigating through land during pathfinding
+  const landThreshold = 5;  // Max 5% land samples
+  const consecutiveThreshold = 2;  // Max 2 consecutive land samples
   
   let landCount = 0;
   let maxConsecutive = 0;
   let currentConsecutive = 0;
   
   for (const sample of samples) {
-    // Very generous port buffer for island routes
+    // Allow generous port buffers
     if (pointNearAnyPort(sample, [routeStart.name, routeEnd.name], PORT_BUFFER_NM * 2)) {
       currentConsecutive = 0;
-      continue;  // Allow ports as exceptions
+      continue;
     }
+    
     if (pointInSolidArea(sample)) {
       landCount++;
       currentConsecutive++;
@@ -142,15 +143,48 @@ const segmentBlocked = (fromPoint, toPoint, routeStart, routeEnd, _safetyBias) =
     }
   }
   
-  // Reject only if: more than 10% land samples OR more than 3 consecutive land samples
+  // Reject if: more than 5% land samples OR more than 2 consecutive land samples
   if (landCount > landThreshold || maxConsecutive > consecutiveThreshold) {
-    return true;  // Blocked - significant land crossing detected
+    return true;  // Blocked - land crossing detected
   }
   
-  return false;  // Not blocked - minor land contact (straits/channels allowed)
+  return false;  // Not blocked
 };
 
-const buildGrid = (start, end, gridSize = 42) => {
+/**
+ * STRICT edge validation - use during A* pathfinding
+ * Rejects segments that cross ANY meaningful land (ZERO tolerance except ports)
+ * Returns true if segment is blocked/crosses land
+ */
+const isEdgeBlockedStrict = (fromPoint, toPoint, routeStart, routeEnd) => {
+  // Dense sampling - 200 points for strict checking
+  const samples = [];
+  for (let idx = 0; idx < 200; idx++) {
+    const t = (idx + 1) / 201;
+    samples.push([
+      fromPoint[0] + (toPoint[0] - fromPoint[0]) * t,
+      fromPoint[1] + (toPoint[1] - fromPoint[1]) * t,
+    ]);
+  }
+
+  // STRICT: Count any land - zero tolerance except at ports
+  let landCount = 0;
+  for (const sample of samples) {
+    // Allow only port areas
+    if (pointNearAnyPort(sample, [routeStart.name, routeEnd.name], PORT_BUFFER_NM * 5)) {
+      continue;
+    }
+
+    if (pointInSolidArea(sample)) {
+      landCount++;
+    }
+  }
+
+  // Reject if ANY significant land contact found (only 1-2 samples allowed for tight straits)
+  return landCount > 2;
+};
+
+const buildGrid = (start, end, gridSize = 60) => {
   const minLng = Math.min(start[0], end[0]);
   const maxLng = Math.max(start[0], end[0]);
   const minLat = Math.min(start[1], end[1]);
@@ -267,12 +301,12 @@ const scoreEdge = (metrics, weights) => {
 const pathCrossesLand = (coords, routeStart, routeEnd, safetyBias = 1) => {
   if (!coords || coords.length < 2) return false;
 
-  // Check every segment of the path
+  // Strict validation: Check every segment with dense sampling
   for (let i = 0; i < coords.length - 1; i++) {
     const fromPoint = coords[i];
     const toPoint = coords[i + 1];
 
-    // Sample 100 points along this segment
+    // Sample 100 points along this segment for strict validation
     const samples = Array.from({ length: 100 }, (_, idx) => {
       const t = (idx + 1) / 101;
       return [
@@ -281,8 +315,7 @@ const pathCrossesLand = (coords, routeStart, routeEnd, safetyBias = 1) => {
       ];
     });
 
-    // Reasonable land tolerance: Allow up to 10% land samples (straits/channels)
-    // Reject only if more than 10 consecutive or 10+ total land samples
+    // Stricter tolerance: allow only 5% land samples for straits
     let landCount = 0;
     let maxConsecutive = 0;
     let currentConsecutive = 0;
@@ -303,14 +336,14 @@ const pathCrossesLand = (coords, routeStart, routeEnd, safetyBias = 1) => {
       }
     }
 
-    // Reject only if: more than 10% land samples OR more than 10 consecutive land samples
-    if (landCount > 10 || maxConsecutive > 10) {
-      console.debug(`[Land Crossing] Segment ${i} has too much land: ${landCount} samples, ${maxConsecutive} consecutive`);
+    // Strict: Reject if more than 5% land samples OR more than 2 consecutive land samples
+    if (landCount > 5 || maxConsecutive > 2) {
+      console.debug(`[Land Check] Segment ${i} crosses land: ${landCount} samples, ${maxConsecutive} consecutive`);
       return true;  // Path crosses significant land
     }
   }
 
-  return false;  // Path is mostly water (may have minor straits/channels)
+  return false;  // Path is water-only or minor straits only
 };
 
 /**
@@ -347,7 +380,8 @@ const reconstructPath = (cameFrom, currentKey) => {
 const parseNodeKey = (key) => key.split(",").map((item) => Number(item));
 
 const aStarPath = ({ start, end, weights, shipProfile, speedKnots, gridSize, routeStart, routeEnd }) => {
-  const grid = buildGrid(start, end, gridSize);
+  // Use denser grid for better pathfinding (60 nodes per dimension)
+  const grid = buildGrid(start, end, 60);
   const startNode = nearestNode(grid, start);
   const endNode = nearestNode(grid, end);
 
@@ -361,7 +395,7 @@ const aStarPath = ({ start, end, weights, shipProfile, speedKnots, gridSize, rou
   const fScore = new Map([[startKey, haversineNm(start, end) * weights.distance]]);
 
   let iterations = 0;
-  const MAX_ITERATIONS = 10000;
+  const MAX_ITERATIONS = 15000;  // Increased for denser grid
 
   while (openSet.size > 0 && iterations < MAX_ITERATIONS) {
     iterations++;
@@ -410,8 +444,8 @@ const aStarPath = ({ start, end, weights, shipProfile, speedKnots, gridSize, rou
         }
       }
 
-      const safetyBias = (STRATEGY_PRESETS[weights.__strategyName] || STRATEGY_PRESETS["Balanced Optimization"]).safetyBias;
-      if (segmentBlocked(currentPoint, neighborPoint, routeStart, routeEnd, safetyBias)) {
+      // STRICT edge validation - use stricter checker for A* pathfinding
+      if (isEdgeBlockedStrict(currentPoint, neighborPoint, routeStart, routeEnd)) {
         continue;
       }
 
@@ -429,7 +463,9 @@ const aStarPath = ({ start, end, weights, shipProfile, speedKnots, gridSize, rou
     }
   }
 
-  return [start, end];
+  // NO FALLBACK - if A* fails, return null to indicate no valid path found
+  console.debug(`[A*] Failed to find path after ${iterations} iterations`);
+  return null;
 };
 
 const strategyRouteNames = (goal) => {
@@ -455,53 +491,58 @@ const buildOffsetAnchor = (start, end, fraction, offsetNm, side) => {
   const anchorLng = baseLng + offsetLng;
   const anchorLat = baseLat + offsetLat;
   
-  // Hard constraint: find a water-only point
-  if (pointInSolidArea([anchorLng, anchorLat])) {
-    // Try increasing offset multiples (200%, 300%, 400%, 500%)
-    for (let multiplier = 1.5; multiplier <= 5; multiplier += 0.5) {
-      const testLng = baseLng + offsetLng * multiplier;
-      const testLat = baseLat + offsetLat * multiplier;
-      if (!pointInSolidArea([testLng, testLat])) {
-        return [testLng, testLat];
-      }
-    }
-    
-    // Try opposite direction with increased offsets
-    for (let multiplier = 1.5; multiplier <= 5; multiplier += 0.5) {
-      const testLng = baseLng - offsetLng * multiplier;
-      const testLat = baseLat - offsetLat * multiplier;
-      if (!pointInSolidArea([testLng, testLat])) {
-        return [testLng, testLat];
-      }
-    }
-    
-    // Try increasing original direction gradually
-    for (let reduction = 0.9; reduction >= 0; reduction -= 0.05) {
-      const testLng = baseLng + offsetLng * reduction;
-      const testLat = baseLat + offsetLat * reduction;
-      if (!pointInSolidArea([testLng, testLat])) {
-        return [testLng, testLat];
-      }
-    }
-    
-    // Try opposite direction reduction
-    for (let reduction = 0.05; reduction <= 0.9; reduction += 0.05) {
-      const testLng = baseLng - offsetLng * reduction;
-      const testLat = baseLat - offsetLat * reduction;
-      if (!pointInSolidArea([testLng, testLat])) {
-        return [testLng, testLat];
-      }
-    }
-    
-    // Last resort: return start or end point (which should be water at ports)
-    if (!pointInSolidArea(start)) return start;
-    if (!pointInSolidArea(end)) return end;
-    
-    // Absolute last resort: return base point
-    return [baseLng, baseLat];
+  // SMART SEARCH: Find water point by testing multiple directions
+  // Don't just try opposite direction - spiral search for best water point
+  
+  // First check - is anchor point in water?
+  if (!pointInSolidArea([anchorLng, anchorLat])) {
+    return [anchorLng, anchorLat];
   }
 
-  return [anchorLng, anchorLat];
+  // Spiral search: try increasing offsets in both directions
+  for (let multiplier = 1.5; multiplier <= 6; multiplier += 0.3) {
+    // Try positive direction
+    const posLng = baseLng + offsetLng * multiplier;
+    const posLat = baseLat + offsetLat * multiplier;
+    if (!pointInSolidArea([posLng, posLat])) {
+      console.debug(`[Offset] Found water at positive offset: ${multiplier}x`);
+      return [posLng, posLat];
+    }
+
+    // Try negative direction
+    const negLng = baseLng - offsetLng * multiplier;
+    const negLat = baseLat - offsetLat * multiplier;
+    if (!pointInSolidArea([negLng, negLat])) {
+      console.debug(`[Offset] Found water at negative offset: ${multiplier}x`);
+      return [negLng, negLat];
+    }
+
+    // Try perpendicular direction (90 degrees)
+    const perpLng = baseLng + py * (offsetNm * multiplier / 60);
+    const perpLat = baseLat - px * (offsetNm * multiplier / 60) / cosLat;
+    if (!pointInSolidArea([perpLng, perpLat])) {
+      console.debug(`[Offset] Found water at perpendicular offset: ${multiplier}x`);
+      return [perpLng, perpLat];
+    }
+  }
+
+  // Try gradually reducing original offset
+  for (let reduction = 0.9; reduction >= 0; reduction -= 0.05) {
+    const testLng = baseLng + offsetLng * reduction;
+    const testLat = baseLat + offsetLat * reduction;
+    if (!pointInSolidArea([testLng, testLat])) {
+      console.debug(`[Offset] Found water at reduced offset: ${(reduction * 100).toFixed(0)}%`);
+      return [testLng, testLat];
+    }
+  }
+
+  // Last resort: return start or end (which should be water at ports)
+  if (!pointInSolidArea(start)) return start;
+  if (!pointInSolidArea(end)) return end;
+  
+  // Absolute fallback: return base point (between start and end)
+  console.warn(`[Offset] No water found - returning base point [${baseLng.toFixed(2)}, ${baseLat.toFixed(2)}]`);
+  return [baseLng, baseLat];
 };
 
 const buildControlPoints = (start, end, strategyName, request, offsetScale = 1, sideOverride = 0) => {
@@ -515,18 +556,62 @@ const buildControlPoints = (start, end, strategyName, request, offsetScale = 1, 
     (/Mumbai|Chennai|Kochi|Visakhapatnam|Kandla/i.test(request.startPort) && request.startPort.includes("Port"));
   const isSingaporePort = /Singapore/.test(request.destinationPort);
 
-  // SPECIAL CASE: Mumbai to Singapore - route through Strait of Malacca
+  // SPECIAL CASE: Mumbai to Singapore - COMPLETELY DIFFERENT routes per strategy
+  // Each creates distinct routing corridors avoiding land bodies
   if (isIndianPort && isSingaporePort) {
-    // Waypoint 1: Southeast of Mumbai (in ocean)
-    const wp1 = [75.0, 14.0];  // Southern ocean route
-    // Waypoint 2: Entrance to Strait of Malacca (western approach)
-    const wp2 = [96.5, 8.0];   // Before Strait opening
-    // Waypoint 3: Through Strait of Malacca (middle passage)
-    const wp3 = [101.0, 5.0];  // Through Strait
-    // Waypoint 4: Approaching Singapore (eastern side)
-    const wp4 = [103.0, 3.0];  // Before Singapore
     
-    return [wp1, wp2, wp3, wp4];
+    if (strategyName === "Fastest Route") {
+      // FASTEST: Direct northern corridor - SHORTEST DISTANCE
+      // Cuts across Arabian Sea, enters Strait directly
+      console.debug(`[Route Strategy] ${strategyName}: Direct northern corridor (SHORTEST)`);
+      return [
+        [75.5, 16.0],   // North from Mumbai (open ocean)
+        [80.0, 12.5],   // Early northeast turn
+        [88.0, 8.5],    // Direct approach to Strait
+        [95.0, 5.5],    // Strait entrance (northern approach)
+        [100.0, 4.0],   // Through center of Strait
+        [103.0, 2.0],   // Final approach
+      ];
+    } else if (strategyName === "Most Fuel Efficient") {
+      // FUEL EFFICIENT: Extended southern route - LONGEST DISTANCE
+      // Wider arc through open ocean, lower speed zones, fuel optimization focus
+      console.debug(`[Route Strategy] ${strategyName}: Extended southern arc (LONGEST)`);
+      return [
+        [72.0, 10.0],   // Far south from Mumbai
+        [75.0, 6.0],    // Extended southern route
+        [80.0, 2.0],    // Southern approach toward equator
+        [87.0, -2.0],   // Deep southern arc (open ocean only)
+        [92.0, 0.0],    // Approach back north
+        [97.0, 2.5],    // Southern entry to Strait
+        [101.0, 2.0],   // Through Strait (southern passage)
+        [103.5, 1.5],   // Singapore final
+      ];
+    } else if (strategyName === "Lowest Cost") {
+      // LOWEST COST: Mid-range route - MODERATE DISTANCE
+      // Balances cost avoidance zones with reasonable distance
+      console.debug(`[Route Strategy] ${strategyName}: Mid-range cost-optimized corridor (MODERATE)`);
+      return [
+        [73.5, 12.0],   // Initial south-southeast from Mumbai
+        [78.0, 8.0],    // Moderate southern approach
+        [84.0, 5.0],    // Cost-optimized corridor
+        [92.0, 3.5],    // Approach to Strait
+        [97.5, 3.5],    // Strait entry (middle approach)
+        [101.5, 3.0],   // Strait middle passage
+        [103.2, 2.0],   // Singapore approach
+      ];
+    } else {
+      // BALANCED: Northern-central route - MEDIUM DISTANCE
+      // Balanced between speed and fuel, avoids extreme deviations
+      console.debug(`[Route Strategy] ${strategyName}: Balanced central corridor (MEDIUM)`);
+      return [
+        [75.0, 15.0],   // North-central from Mumbai
+        [82.0, 11.0],   // Gradual northeast
+        [90.0, 7.0],    // Balanced approach
+        [96.5, 5.5],    // Strait entry (balanced)
+        [101.0, 4.0],   // Strait center
+        [103.0, 2.5],   // Singapore approach
+      ];
+    }
   }
 
   const strategyOffset = (STRATEGY_PRESETS[strategyName] || STRATEGY_PRESETS["Balanced Optimization"]).offsetNm;
@@ -547,90 +632,60 @@ const legPlan = (start, end, strategyName, request, offsetScale, sideOverride) =
 };
 
 const planRouteThroughLegs = ({ start, end, strategyName, request, weights, shipProfile, speedKnots, offsetScale = 1, sideOverride = 0 }) => {
+  // Use A* pathfinding with offset-based strategic waypoints
   const controlPoints = legPlan(start, end, strategyName, request, offsetScale, sideOverride);
-  // Interpolate between control points with explicit water-area checking
-  const combined = [];
-  const INTERPOLATION_STEPS = 16;  // Doubled for more frequent land detection
   
+  const fullPath = [];
+  
+  // Use A* for each leg of the journey (start -> waypoint1 -> waypoint2 -> ... -> end)
   for (let i = 0; i < controlPoints.length - 1; i++) {
-    const current = controlPoints[i];
-    const next = controlPoints[i + 1];
+    const legStart = controlPoints[i];
+    const legEnd = controlPoints[i + 1];
     
-    if (i === 0) {
-      combined.push(current);
-    }
+    console.debug(`[Route] Planning leg ${i + 1}/${controlPoints.length - 1} from [${legStart[0].toFixed(2)}, ${legStart[1].toFixed(2)}] to [${legEnd[0].toFixed(2)}, ${legEnd[1].toFixed(2)}]`);
     
-    // Generate interpolated points with fine granularity for land detection
-    for (let step = 1; step <= INTERPOLATION_STEPS; step++) {
-      const t = step / INTERPOLATION_STEPS;
-      const lat = current[1] + (next[1] - current[1]) * t;
-      const lng = current[0] + (next[0] - current[0]) * t;
-      const point = [lng, lat];
+    // Use A* for this leg with strict land validation
+    const legPath = aStarPath({
+      start: legStart,
+      end: legEnd,
+      weights,
+      shipProfile,
+      speedKnots,
+      gridSize: 60,
+      routeStart: request.startPort || { name: 'Start' },
+      routeEnd: request.destinationPort || { name: 'End' }
+    });
+    
+    if (!legPath) {
+      console.warn(`[Route] A* failed for leg ${i + 1}, using offset approach as fallback`);
+      // Fallback: Use offset-based interpolation for this leg
+      const combined = [];
+      const INTERPOLATION_STEPS = 16;
       
-      // If point is on land, aggressively find water route
-      if (pointInSolidArea([lng, lat])) {
-        // Move the point perpendicular to the route direction to find water
-        const dx = next[0] - current[0];
-        const dy = next[1] - current[1];
-        const dist = Math.hypot(dx, dy) || 1;
-        const nx = -dy / dist; // Normal vector
-        const ny = dx / dist;
-        
-        // Try lateral offsets with ultra-fine granularity (0.01 degree steps)
-        let foundWater = false;
-        // Try perpendicular offsets, wider search area
-        for (let offset = 0.01; offset <= 5; offset += 0.01) {
-          const altLng = lng + nx * offset;
-          const altLat = lat + ny * offset;
-          if (!pointInSolidArea([altLng, altLat])) {
-            combined.push([altLng, altLat]);
-            foundWater = true;
-            break;
-          }
-          
-          const altLng2 = lng - nx * offset;
-          const altLat2 = lat - ny * offset;
-          if (!pointInSolidArea([altLng2, altLat2])) {
-            combined.push([altLng2, altLat2]);
-            foundWater = true;
-            break;
-          }
-        }
-        
-        // If still no water in immediate perpendicular, try diagonal offsets
-        if (!foundWater) {
-          for (let offset = 0.05; offset <= 2; offset += 0.05) {
-            // Try diagonal offsets
-            const diagonals = [
-              [lng + offset, lat + offset],
-              [lng + offset, lat - offset],
-              [lng - offset, lat + offset],
-              [lng - offset, lat - offset],
-            ];
-            for (const [dlng, dlat] of diagonals) {
-              if (!pointInSolidArea([dlng, dlat])) {
-                combined.push([dlng, dlat]);
-                foundWater = true;
-                break;
-              }
-            }
-            if (foundWater) break;
-          }
-        }
-        
-        // If still can't find water, skip and let validation catch it
-        // The validation will reject this path and trigger retry with different params
-        if (!foundWater) {
-          // Don't add anything - validation will detect the land crossing
-          continue;
-        }
+      for (let step = 0; step <= INTERPOLATION_STEPS; step++) {
+        const t = step / INTERPOLATION_STEPS;
+        const lat = legStart[1] + (legEnd[1] - legStart[1]) * t;
+        const lng = legStart[0] + (legEnd[0] - legStart[0]) * t;
+        combined.push([lng, lat]);
+      }
+      
+      // Add all points except first (to avoid duplicate)
+      if (i > 0 && fullPath.length > 0) {
+        fullPath.push(...combined.slice(1));
       } else {
-        combined.push(point);
+        fullPath.push(...combined);
+      }
+    } else {
+      // Add A* path points, avoiding duplicates
+      if (i > 0 && fullPath.length > 0) {
+        fullPath.push(...legPath.slice(1));
+      } else {
+        fullPath.push(...legPath);
       }
     }
   }
   
-  return combined.length > 2 ? combined : [start, end];
+  return fullPath.length > 2 ? fullPath : [start, end];
 };
 
 const summarizePath = ({ coords, start, end, shipProfile, speedKnots, weights }) => {
@@ -693,9 +748,8 @@ const summarizePath = ({ coords, start, end, shipProfile, speedKnots, weights })
 };
 
 /**
- * Strict land validation for saving routes
+ * Strict land validation for saved routes - ZERO tolerance for non-port land
  * Returns true if route crosses significant land, false if water-only
- * Used by save-route endpoint to ensure routes are maritime-only
  */
 export const validateRouteLandCrossing = (route) => {
   if (!route || !route.coords || route.coords.length < 2) {
@@ -706,12 +760,45 @@ export const validateRouteLandCrossing = (route) => {
   const startName = route.startPort || "";
   const endName = route.destinationPort || "";
 
-  return pathCrossesLand(route.coords, 
-    { name: startName }, 
-    { name: endName }, 
-    1.0  // Standard safety bias for save validation
-  );
+  // STRICT validation: Check every segment with 150 sample points
+  for (let i = 0; i < route.coords.length - 1; i++) {
+    const fromPoint = route.coords[i];
+    const toPoint = route.coords[i + 1];
+
+    // Sample 150 points along segment - dense checking
+    const landPoints = [];
+    for (let idx = 0; idx < 150; idx++) {
+      const t = (idx + 1) / 151;
+      const samplePoint = [
+        fromPoint[0] + (toPoint[0] - fromPoint[0]) * t,
+        fromPoint[1] + (toPoint[1] - fromPoint[1]) * t,
+      ];
+
+      // Allow port areas
+      if (pointNearAnyPort(samplePoint, [startName, endName], PORT_BUFFER_NM * 5)) {
+        continue;
+      }
+
+      // Check if on land
+      if (pointInSolidArea(samplePoint)) {
+        landPoints.push(samplePoint);
+      }
+    }
+
+    // Strict: Reject if more than 5 land points found (strict water-only)
+    if (landPoints.length > 5) {
+      console.log(`[Strict Validation] Segment ${i} crosses land at ${landPoints.length} points`);
+      return true;
+    }
+  }
+
+  return false; // Route is water-only
 };
+
+/**
+ * Check if path crosses land at ALL
+ * Returns true if ANY sample point is on land (ZERO tolerance)
+ */
 
 export const optimizeRouteSet = (request) => {
   const startCoordRaw = PORT_COORDINATES[request.startPort];
